@@ -1,0 +1,2 @@
+---
+vault_kv2: "{{ lookup('community.hashi_vault.vault_kv2_get', secret_path, url=vault_url, auth_method='approle', role_id=vault_role_id, secret_id=vault_secret_id, engine_mount_point='secret').secret }}"

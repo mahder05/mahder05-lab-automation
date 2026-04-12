@@ -1,0 +1,27 @@
+name: GitOps Infrastructure Sync
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'inventory/**'
+      - 'playbooks/**'
+
+jobs:
+  validate-state:
+    runs-on: [self-hosted, mahderlab]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax Check
+        run: ansible-playbook --syntax-check site.yml -i inventory/hosts.yml
+
+  reconcile-infrastructure:
+    needs: validate-state
+    runs-on: [self-hosted, mahderlab]
+    steps:
+      - name: Trigger AWX Workflow
+        run: |
+          curl -f -k -X POST \
+            -H "Authorization: Bearer ${{ secrets.AWX_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{}' \
+            "${{ secrets.AWX_HOST }}/api/v2/workflow_job_templates/${{ secrets.TEMPLATE_ID }}/launch/"

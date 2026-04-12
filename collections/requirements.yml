@@ -1,0 +1,8 @@
+---
+collections:
+  - name: community.general
+  - name: community.hashi_vault
+    version: "7.1.0"
+  - name: ansible.windows
+  - name: community.windows
+  - name: chocolatey.chocolatey  # <--- Add this for Windows package management

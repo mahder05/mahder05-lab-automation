@@ -1,0 +1,119 @@
+---
+- name: Infrastructure Reconciliation - Linux
+  hosts: linux
+  gather_facts: false
+  tasks:
+    - name: Fetch Linux Credentials from Vault
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_url }}"
+        path: "lab/linux/{{ inventory_hostname }}"
+        engine_mount_point: secret
+        auth_method: approle
+        role_id: "{{ vault_role_id }}"
+        secret_id: "{{ vault_secret_id }}"
+        timeout: 60
+      register: vault_result
+      delegate_to: localhost
+      no_log: true
+
+    - name: Set Connection Facts
+      set_fact:
+        ansible_user: "{{ vault_result.secret['username'] }}"
+        ansible_password: "{{ vault_result.secret['password'] }}"
+        ansible_become_password: "{{ vault_result.secret['password'] }}"
+      no_log: true
+
+    - name: Establish Connection and Gather Facts
+      ansible.builtin.setup:
+
+    - name: Install Node Exporter (RedHat/Fedora)
+      when: ansible_facts['os_family'] == "RedHat"
+      become: yes
+      block:
+        - name: Download Node Exporter Binary
+          ansible.builtin.get_url:
+            url: https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz
+            dest: /tmp/node_exporter.tar.gz
+
+        - name: Unpack Node Exporter
+          ansible.builtin.unarchive:
+            src: /tmp/node_exporter.tar.gz
+            dest: /usr/local/bin
+            remote_src: yes
+            extra_opts: [--strip-components=1]
+            exclude: ['*.md', 'LICENSE']
+
+        - name: Create Node Exporter Systemd Service
+          ansible.builtin.copy:
+            dest: /etc/systemd/system/node_exporter.service
+            content: |
+              [Unit]
+              Description=Node Exporter
+              [Service]
+              ExecStart=/usr/local/bin/node_exporter
+              [Install]
+              WantedBy=multi-user.target
+
+    - name: Install Node Exporter (Debian/Ubuntu)
+      ansible.builtin.package:
+        name: prometheus-node-exporter
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+      become: yes
+
+    - name: Ensure Node Exporter is Running
+      ansible.builtin.service:
+        name: "{{ 'node_exporter' if ansible_facts['os_family'] == 'RedHat' else 'prometheus-node-exporter' }}"
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      become: yes
+
+- name: Infrastructure Reconciliation - Windows
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: Fetch Windows Credentials from Vault
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_url }}"
+        path: "lab/windows/{{ inventory_hostname }}"
+        engine_mount_point: secret
+        auth_method: approle
+        role_id: "{{ vault_role_id }}"
+        secret_id: "{{ vault_secret_id }}"
+        timeout: 60
+      register: vault_result
+      delegate_to: localhost
+      no_log: true
+
+    - name: Set Windows Connection Facts
+      set_fact:
+        ansible_user: "{{ vault_result.secret['username'] }}"
+        ansible_password: "{{ vault_result.secret['password'] }}"
+        ansible_connection: winrm
+        ansible_winrm_transport: basic
+        ansible_winrm_port: 5985
+        ansible_winrm_scheme: http
+        ansible_winrm_server_cert_validation: ignore
+        ansible_winrm_operation_timeout_sec: 60
+        ansible_winrm_read_timeout_sec: 70
+      no_log: true
+
+    - name: Verify Windows Connectivity
+      ansible.windows.win_ping:
+
+    - name: Create Windows Audit Folder
+      ansible.windows.win_file:
+        path: C:\GitOps_Audit
+        state: directory
+
+    - name: Install Windows Exporter via Chocolatey
+      chocolatey.chocolatey.win_chocolatey:
+        name: prometheus-windows-exporter.install
+        state: present
+
+    - name: Ensure Windows Exporter Service is Running
+      ansible.windows.win_service:
+        name: windows_exporter
+        state: started
+        start_mode: auto

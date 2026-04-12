@@ -1,0 +1,41 @@
+name: Smart GitOps Dispatcher
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  changes:
+    runs-on: [self-hosted, mahderlab]
+    outputs:
+      network: ${{ steps.filter.outputs.network }}
+      web: ${{ steps.filter.outputs.web }}
+      db: ${{ steps.filter.outputs.db }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            network: ['network-config/**']
+            web: ['web-servers/**']
+            db: ['db-servers/**']
+
+  deploy-network:
+    needs: changes
+    if: ${{ needs.changes.outputs.network == 'true' }}
+    runs-on: [self-hosted, mahderlab]
+    steps:
+      - name: Trigger Network Job
+        run: |
+          curl -f -k -X POST -H "Authorization: Bearer ${{ secrets.AWX_TOKEN }}" \
+          "${{ secrets.AWX_HOST }}/api/v2/job_templates/10/launch/"
+
+  deploy-web:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    runs-on: [self-hosted, mahderlab]
+    steps:
+      - name: Trigger Web Job
+        run: |
+          curl -f -k -X POST -H "Authorization: Bearer ${{ secrets.AWX_TOKEN }}" \
+          "${{ secrets.AWX_HOST }}/api/v2/job_templates/20/launch/"

@@ -1,0 +1,142 @@
+---
+- name: Fetch credentials from Vault
+  hosts: linux
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Fetch credentials from Vault
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_url }}"
+        path: "lab/linux/{{ inventory_hostname }}"
+        engine_mount_point: secret
+        auth_method: approle
+        role_id: "{{ vault_role_id }}"
+        secret_id: "{{ vault_secret_id }}"
+      register: vault_result
+      delegate_to: localhost
+      retries: 3
+      delay: 5
+      until: vault_result is not failed
+
+    - name: Set credentials as host facts
+      set_fact:
+        ansible_user: "{{ vault_result.secret['username'] }}"
+        ansible_password: "{{ vault_result.secret['password'] }}"
+
+- name: Universal Linux Host Setup and Management
+  hosts: linux
+  become: true
+  gather_facts: true
+
+  vars:
+    packages_common:
+      - vim
+      - curl
+      - wget
+      - net-tools
+    new_user: "labuser"
+    new_user_password_hashed: "$6$REPLACE_WITH_YOUR_HASHED_PASSWORD"
+
+  tasks:
+
+    # ───────────────────────────────────────────────────────────────
+    # SYSTEM INFORMATION
+    # ───────────────────────────────────────────────────────────────
+    - name: Display system information
+      ansible.builtin.debug:
+        msg:
+          - "Hostname     : {{ ansible_facts['hostname'] }}"
+          - "OS           : {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+          - "Kernel       : {{ ansible_facts['kernel'] }}"
+          - "Architecture : {{ ansible_facts['architecture'] }}"
+          - "IP Address   : {{ ansible_facts['all_ipv4_addresses'] | first | default('unknown') }}"
+          - "CPU Cores    : {{ ansible_facts['processor_vcpus'] }}"
+          - "Total RAM    : {{ ansible_facts['memtotal_mb'] }} MB"
+          - "Free RAM     : {{ ansible_facts['memfree_mb'] }} MB"
+
+    - name: Check disk usage
+      ansible.builtin.command: df -hT
+      register: disk_usage
+      changed_when: false
+
+    - name: Show disk usage
+      ansible.builtin.debug:
+        var: disk_usage.stdout_lines
+
+    # ───────────────────────────────────────────────────────────────
+    # PACKAGE MANAGEMENT
+    # ───────────────────────────────────────────────────────────────
+    - name: Update packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: "{{ packages_common }}"
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install packages (RHEL family)
+      ansible.builtin.yum:
+        name: "{{ packages_common }}"
+        state: present
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Install packages (Fedora)
+      ansible.builtin.dnf:
+        name: "{{ packages_common }}"
+        state: present
+      when: ansible_facts['distribution'] == "Fedora"
+
+    # ───────────────────────────────────────────────────────────────
+    # USER MANAGEMENT
+    # ───────────────────────────────────────────────────────────────
+    - name: Ensure lab user exists
+      ansible.builtin.user:
+        name: "{{ new_user }}"
+        password: "{{ new_user_password_hashed }}"
+        groups: "{{ 'wheel' if ansible_facts['os_family'] == 'RedHat' else 'sudo' }}"
+        append: true
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Add sudoers entry for lab user
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ new_user }}"
+        content: "{{ new_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    # ───────────────────────────────────────────────────────────────
+    # SYSTEM SETTINGS
+    # ───────────────────────────────────────────────────────────────
+    - name: Set system timezone to UTC
+      ansible.builtin.command: timedatectl set-timezone UTC
+      changed_when: false
+
+    - name: Determine SSH service name
+      set_fact:
+        ssh_service: "{{ 'sshd' if ansible_facts['os_family'] in ['RedHat', 'Suse'] or ansible_facts['distribution'] == 'Fedora' else 'ssh' }}"
+
+    - name: Ensure SSH service is running and enabled
+      ansible.builtin.service:
+        name: "{{ ssh_service }}"
+        state: started
+        enabled: true
+
+    # ───────────────────────────────────────────────────────────────
+    # MOTD BANNER
+    # ───────────────────────────────────────────────────────────────
+    - name: Write custom motd banner
+      ansible.builtin.copy:
+        dest: /etc/motd
+        content: |
+          ############################################
+          #   Managed by Ansible AWX - Hybrid Lab   #
+          #   Unauthorized access is prohibited     #
+          ############################################
+        mode: "0644"
