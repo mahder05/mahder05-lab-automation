@@ -4,15 +4,16 @@
 
 🛠️ Tools Used
 
-	•	Ansible
-	•	Docker
-	•	Kubernetes
-	•	Minikube
-	•	Terraform
-	•	GitHub Actions (CI/CD)
-	•	AWX
-	•	Helm
-	•	Colima
+	Ansible
+	Docker
+	Kubernetes
+	Minikube
+	Hashicorp Vault
+	Terraform
+	GitHub Actions (CI/CD)
+	AWX
+	Helm
+	Colima
 
 Automation-Lab-Setup-Flow
 
@@ -21,10 +22,10 @@ Automation-Lab-Setup-Flow
 
 ⚡ Purpose
 
-	•	Practice automation
-	•	Build DevOps workflows
-	•	Learn containerization & orchestration
-	•	Implement CI/CD pipelines
+	Practice automation
+	Build DevOps workflows
+	Learn containerization & orchestration
+	Implement CI/CD pipelines
 
 👨‍💻 Author
 
