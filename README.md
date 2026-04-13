@@ -14,14 +14,9 @@
 	•	Helm
 	•	Colima
 
-automation-lab
+Automation-Lab-Setup-Flow
 
-├── ansible/
-├── docker/
-├── kubernetes/
-├── terraform/
-├── github-actions/
-└── README.md
+     colima --> docker --> minikube --> k8s --> vault --> terraform --> awx --> github-actions CI/CD --> playbooks --> Automation Jobs --> ansible-cli
 
 ⚡ Purpose
 
@@ -30,7 +25,6 @@ automation-lab
 	•	Learn containerization & orchestration
 	•	Implement CI/CD pipelines
 
-
 👨‍💻 Author
 
-Maheshbabu Derangula
+    Maheshbabu Derangula
