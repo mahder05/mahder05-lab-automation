@@ -1,39 +1,8 @@
 ---
-- name: Fetch credentials from Vault
-  hosts: windows
-  gather_facts: false
-  become: false
-
-  tasks:
-    - name: Fetch credentials from Vault
-      community.hashi_vault.vault_kv2_get:
-        url: "{{ vault_url }}"
-        path: "lab/windows/{{ inventory_hostname }}"
-        engine_mount_point: secret
-        auth_method: approle
-        role_id: "{{ vault_role_id }}"
-        secret_id: "{{ vault_secret_id }}"
-      register: vault_result
-      delegate_to: localhost
-      retries: 3
-      delay: 5
-      until: vault_result is not failed
-
-    - name: Set credentials as host facts
-      set_fact:
-        ansible_user: "{{ vault_result.secret['username'] }}"
-        ansible_password: "{{ vault_result.secret['password'] }}"
-        ansible_winrm_transport: basic
-        ansible_winrm_port: 5985
-        ansible_winrm_scheme: http
-        ansible_winrm_server_cert_validation: ignore
-        ansible_winrm_operation_timeout_sec: 60
-        ansible_winrm_read_timeout_sec: 70
-
 - name: Windows Host Setup and Management
   hosts: windows
-  gather_facts: true
-
+  gather_facts: false  # False initially because we need credentials first
+  
   vars:
     chocolatey_packages:
       - googlechrome
@@ -44,9 +13,8 @@
     new_user_group: "Administrators"
 
   tasks:
-
-    # ── Fetch labuser password from Vault ──────────────────────────
-    - name: Fetch labuser password from Vault
+    # ── AUTHENTICATION: Fetch Admin Credentials from Vault ──────────
+    - name: Fetch Admin credentials from Vault
       community.hashi_vault.vault_kv2_get:
         url: "{{ vault_url }}"
         path: "lab/windows/{{ inventory_hostname }}"
@@ -56,22 +24,34 @@
         secret_id: "{{ vault_secret_id }}"
       register: win_vault
       delegate_to: localhost
+      retries: 3
+      delay: 5
+      until: win_vault is not failed
 
-    - name: Set labuser password fact
+    - name: Set WinRM and User facts
       set_fact:
-        new_user_password: "{{ win_vault.secret['labuser_password'] }}"
+        ansible_user: "{{ win_vault.secret.username }}"
+        ansible_password: "{{ win_vault.secret.password }}"
+        # Extracting the new user password here to avoid double-fetching
+        new_user_password: "{{ win_vault.secret.labuser_password | default('M4_Mastery_2026!') }}"
+        ansible_winrm_transport: basic
+        ansible_winrm_port: 5985
+        ansible_winrm_scheme: http
+        ansible_winrm_server_cert_validation: ignore
+        ansible_connection: winrm
 
-    # ── System Info ────────────────────────────────────────────────
+    # ── GATHER FACTS: Now that we have credentials ────────────────
+    - name: Gather facts manually
+      ansible.builtin.setup:
+
+    # ── SYSTEM INFO: Debugging ─────────────────────────────────────
     - name: Display system information
       ansible.builtin.debug:
         msg:
           - "Hostname     : {{ ansible_facts['hostname'] }}"
           - "OS           : {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
           - "Architecture : {{ ansible_facts['architecture'] }}"
-          - "IP Address   : {{ ansible_facts['ip_addresses'][0] }}"
-          - "CPU Cores    : {{ ansible_facts['processor_count'] }}"
           - "Total RAM    : {{ ansible_facts['memtotal_mb'] }} MB"
-          - "Free RAM     : {{ ansible_facts['memfree_mb'] }} MB"
 
     - name: Get disk info
       ansible.windows.win_shell: Get-PSDrive -PSProvider FileSystem | Select-Object Name, Used, Free
@@ -82,7 +62,7 @@
       ansible.builtin.debug:
         var: disk_info.stdout_lines
 
-    # ── Install Software via Chocolatey ────────────────────────────
+    # ── SOFTWARE: Chocolatey Management ────────────────────────────
     - name: Ensure Chocolatey is installed
       chocolatey.chocolatey.win_chocolatey:
         name: chocolatey
@@ -95,13 +75,14 @@
         state: present
       failed_when: false
 
-    - name: Upgrade all Chocolatey packages
-      chocolatey.chocolatey.win_chocolatey:
-        name: all
-        state: present
-      failed_when: false
-
-    # ── User Management ────────────────────────────────────────────
+    # ── USER MANAGEMENT: Fixed Indentation and Policies ────────────
+    - name: Lower password complexity requirements
+      ansible.windows.win_powershell:
+        script: |
+          secedit /export /cfg C:\sec.cfg
+          (Get-Content C:\sec.cfg) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content C:\sec.cfg
+          secedit /configure /db $env:windir\security\local.sdb /cfg C:\sec.cfg /areas SECURITYPOLICY
+    
     - name: Ensure lab user exists
       ansible.windows.win_user:
         name: "{{ new_user }}"
@@ -117,16 +98,10 @@
           - "{{ new_user }}"
         state: present
 
-    # ── System Settings ────────────────────────────────────────────
+    # ── SYSTEM SETTINGS: Hardening & Config ────────────────────────
     - name: Set timezone to UTC
       ansible.windows.win_timezone:
         timezone: "UTC"
-
-    - name: Ensure WinRM is running
-      ansible.windows.win_service:
-        name: WinRM
-        state: started
-        start_mode: auto
 
     - name: Disable Windows Firewall (lab only)
       ansible.windows.win_firewall:
