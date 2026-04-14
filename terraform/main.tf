@@ -157,3 +157,27 @@ resource "kubernetes_manifest" "awx_instance" {
   }
   depends_on = [helm_release.awx_operator]
 }
+
+# Standard Kubernetes provider you already have
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
+
+# The AWX provider - This allows Terraform to create buttons and settings inside AWX
+provider "awx" {
+  endpoint = "http://localhost:8080" # Or your minikube IP
+  username = "admin"
+  password = "Dkbmlrv@508"
+}
+
+resource "awx_credential" "vault_approle" {
+  name            = "Vault AppRole Credential"
+  organization_id = 1
+  credential_type = "Hashicorp_Vault_AppRole"
+
+  inputs = jsonencode({
+    address   = "http://vault.vault.svc.cluster.local:8200" # Internal K8s address
+    role_id   = var.vault_role_id
+    secret_id = var.vault_secret_id
+  })
+}

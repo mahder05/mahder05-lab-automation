@@ -9,3 +9,7 @@ variable "namespace_name" {
   type        = string
   default     = "production-ready-lab"
 }
+
+variable "awx_password" { type = string }
+variable "vault_role_id" { type = string }
+variable "vault_secret_id" { type = string }
