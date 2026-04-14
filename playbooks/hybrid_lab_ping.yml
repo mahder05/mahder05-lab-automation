@@ -2,25 +2,27 @@
 - name: Hybrid Lab - Linux Ping
   hosts: linux
   gather_facts: false
-  vars:
-    # Build path based on your Vault structure: secret/lab/linux/hostname
-    secret_path: "lab/linux/{{ inventory_hostname }}"
   tasks:
-    - name: Load Vault Secrets for Linux
-      include_vars: ../vars/vault_lookup.yml
+    - name: Fetch Linux Credentials
+      include_vars:
+        file: ../vars/vault_lookup.yml
+      vars:
+        # Pulls path from mahder05-ubuntu25-pro.yml, etc.
+        secret_path: "{{ vault_secret_path }}"
 
-    - name: Ping Linux Hosts
+    - name: Ping Linux
       ansible.builtin.ping:
 
 - name: Hybrid Lab - Windows Ping
   hosts: windows
   gather_facts: false
-  vars:
-    # Build path based on your Vault structure: secret/lab/windows/hostname
-    secret_path: "lab/windows/{{ inventory_hostname }}"
   tasks:
-    - name: Load Vault Secrets for Windows
-      include_vars: ../vars/vault_lookup.yml
+    - name: Fetch Windows Credentials
+      include_vars:
+        file: ../vars/vault_lookup.yml
+      vars:
+        # Pulls path from mahder05-winserver2025.yml, etc.
+        secret_path: "{{ vault_secret_path }}"
 
-    - name: Ping Windows Hosts
+    - name: Win Ping
       ansible.windows.win_ping:
