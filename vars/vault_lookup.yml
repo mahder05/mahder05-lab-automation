@@ -1,15 +1,16 @@
 ---
-# We use 'default' to ensure the lookup doesn't attempt to login with empty strings
-vault_role_id_env: "{{ lookup('env', 'VAULT_ROLE_ID') | default('', true) }}"
-vault_secret_id_env: "{{ lookup('env', 'VAULT_SECRET_ID') | default('', true) }}"
+# Fetch the IDs from the environment variables injected by AWX
+# We use 'default' to prevent lookup errors if the env var is missing
+v_role_id: "{{ lookup('env', 'VAULT_ROLE_ID') | default('', true) }}"
+v_secret_id: "{{ lookup('env', 'VAULT_SECRET_ID') | default('', true) }}"
 
 vault_response: "{{ lookup('community.hashi_vault.vault_kv2_get', 
                 vault_secret_path, 
                 url='http://vault-internal.awx-mastery.svc.cluster.local:8200', 
                 engine_mount_point='secrets',
                 auth_method='approle',
-                role_id=vault_role_id_env,
-                secret_id=vault_secret_id_env) }}"
+                role_id=v_role_id,
+                secret_id=v_secret_id) }}"
 
 # Map the data to the variables Ansible uses for connections
 ansible_user: "{{ vault_response.data.data.username }}"
