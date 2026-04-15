@@ -3,8 +3,8 @@
 vault_url: "http://vault.awx-mastery.svc.cluster.local:8200"
 
 # Hardcode credentials here (temporary)
-# v_role_id: "cee77d55-b0dc-32ec-f28a-d5df6639ffd3"
-# v_secret_id: "a1da2303-6017-1ed7-0493-bbcc7d6f01aa"
+v_role_id: "cee77d55-b0dc-32ec-f28a-d5df6639ffd3"
+v_secret_id: "a1da2303-6017-1ed7-0493-bbcc7d6f01aa"
 
 # Execute the lookup
 vault_kv2: "{{ lookup('community.hashi_vault.vault_kv2_get', 
