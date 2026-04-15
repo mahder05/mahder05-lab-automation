@@ -2,7 +2,7 @@
 # This fetches the secret using the role_id and secret_id injected by AWX
 vault_response: "{{ lookup('community.hashi_vault.vault_kv2_get', 
                 secret_path, 
-                url='http://vault.awx-mastery:8200', 
+                url='http://vault-internal.awx-mastery.svc.cluster.local:8200', 
                 engine_mount_point='secret',
                 auth_method='approle',
                 role_id=vault_role_id,
