@@ -1,7 +1,7 @@
 ---
-# Fetch the IDs from the environment variables injected by AWX
-vault_role_id_env: "{{ lookup('env', 'VAULT_ROLE_ID') }}"
-vault_secret_id_env: "{{ lookup('env', 'VAULT_SECRET_ID') }}"
+# We use 'default' to ensure the lookup doesn't attempt to login with empty strings
+vault_role_id_env: "{{ lookup('env', 'VAULT_ROLE_ID') | default('', true) }}"
+vault_secret_id_env: "{{ lookup('env', 'VAULT_SECRET_ID') | default('', true) }}"
 
 vault_response: "{{ lookup('community.hashi_vault.vault_kv2_get', 
                 vault_secret_path, 
