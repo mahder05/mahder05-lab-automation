@@ -32,7 +32,7 @@ This lab simulates a real-world enterprise environment on a local machine:
     Grafana          http://localhost:3000   80 -> 3000      Observability & Metrics
 
 
-🚀 Installation & Deployment Steps1. 
+🚀 Installation & Deployment Steps. 
 
 Prerequisites
 
@@ -41,15 +41,28 @@ Prerequisites
     kubectl
     Helm
 
-Prepare the Engine (Colima)
+Configuration Files Reference
+
+   provider.tf - Configures the Kubernetes and Helm providers to point to your k3d-devops-lab context.
+   main.tf -  Defines the kubernetes_namespace resources and helm_release blocks for
+    
+    ArgoCD: argo-cd chart in argocd namespace
+    Vault: vault chart in awx-mastery namespace.
+    AWX Operator: awx-operator chart.
+    Monitoring: kube-prometheus-stack chart.
+
+   variables.tf & terraform.tfvars - used to manage cluster naming, toggling services on/off, and defining the list of namespaces to be created.
+
+
+-> Prepare the Engine (Colima)
       
--> Colima provides the Docker/Kubernetes runtime.
+   Colima provides the Docker/Kubernetes runtime.
 
     colima start --cpu 4 --memory 8 --disk 100
     
 -> Provision the Cluster (k3d & Terraform)
    
- Create the cluster and use Terraform to deploy the core services:
+   Create the cluster and use Terraform to deploy the core services:
 
     # Create the cluster
     k3d cluster create devops-lab --port "8081:443@loadbalancer"
@@ -63,6 +76,7 @@ Initialize and deploy the base namespaces and Helm charts (ArgoCD, Vault Operato
     terraform apply -auto-approve
 
 -> Deploy AWX InstanceThe Terraform script installs the AWX Operator.
+
    Now, you must deploy the actual AWX instance using a Kubernetes Custom Resource:
    
     cat <<EOF | kubectl apply -f -
@@ -112,18 +126,6 @@ Run the start script to establish all port-forwarding tunnels:
     Vault           Use the Root Token generated during init
     Grafana         User: admin | Pass: prom-operator (default)
 
-
-🛠️ Configuration Files Reference
-
-   provider.tf - Configures the Kubernetes and Helm providers to point to your k3d-devops-lab context.
-   main.tf -  Defines the kubernetes_namespace resources and helm_release blocks for
-    
-    ArgoCD: argo-cd chart in argocd namespace
-    Vault: vault chart in awx-mastery namespace.
-    AWX Operator: awx-operator chart.
-    Monitoring: kube-prometheus-stack chart.
-
-   variables.tf & terraform.tfvars - used to manage cluster naming, toggling services on/off, and defining the list of namespaces to be created.
 
 -> Continuous Delivery (ArgoCD)
    
@@ -192,7 +194,9 @@ Security Note
 
    This lab uses a Root Token for initial Vault setup and an AppRole for AWX integration. In a production environment, Root Tokens should be revoked immediately after creating      administrative policies.
 
-💡 Troubleshooting TipIf terraform apply fails because the cluster isn't ready, ensure Colima is running with enough resources:colima start --cpu 4 --memory 8
+💡 Troubleshooting TipIf terraform apply fails because the cluster isn't ready, ensure Colima is running with enough resources:
+
+    colima start --cpu 4 --memory 8
 
 💡 Pro-Tips for the Lab: 
 
