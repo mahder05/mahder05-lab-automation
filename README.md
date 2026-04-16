@@ -65,6 +65,7 @@ This lab simulates a real-world enterprise environment on a local machine:
 💡 Pro-Tips for the Lab: 
 
   Persistence: Ensure your AWX and Vault instances are backed by Persistent Volume Claims (PVCs) if you want data to survive a k3d cluster stop.
+ 
   Shell Aliases: Add alias k='kubectl' to your .zshrc or .bashrc for faster navigation.
 
 
