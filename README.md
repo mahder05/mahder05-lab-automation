@@ -85,7 +85,9 @@ This lab simulates a real-world enterprise environment on a local machine:
     terraform init
     terraform apply -auto-approve
 
--> **Deploy AWX InstanceThe Terraform script installs the AWX Operator.**
+-> **Deploy AWX Instance**
+   
+   The Terraform script installs the AWX Operator.
 
    Now, you must deploy the actual AWX instance using a Kubernetes Custom Resource:
    
