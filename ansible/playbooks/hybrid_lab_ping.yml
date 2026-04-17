@@ -1,6 +1,6 @@
 ---
 - name: Hybrid Lab Connectivity Check
-  hosts: hybrid_lab
+  hosts: all
   gather_facts: false
   
   pre_tasks:
