@@ -18,7 +18,6 @@
 
     - name: Configure WinRM connection facts
       set_fact:
-        # Ensuring Windows also uses the correct KV2 nested data path
         ansible_user: "{{ win_vault.data.data.ansible_user }}"
         ansible_password: "{{ win_vault.data.data.ansible_password }}"
         ansible_connection: winrm
