@@ -2,11 +2,15 @@
 - name: Windows Host Setup and Management
   hosts: windows
   gather_facts: false
+  vars:
+    # Format: http://<service-name>.<namespace>.svc.cluster.local:<port>
+    vault_url: "http://vault.awx-mastery.svc.cluster.local:8200"
+  
   tasks:
     - name: Fetch Admin credentials via AppRole
       community.hashi_vault.vault_kv2_get:
         url: "{{ vault_url }}"
-        path: "lab/windows/{{ inventory_hostname }}"
+        path: "secret/lab/windows/{{ inventory_hostname }}"
         engine_mount_point: secret
         auth_method: approle
         role_id: "{{ vault_role_id }}"
@@ -24,8 +28,8 @@
         ansible_winrm_scheme: http
         ansible_winrm_server_cert_validation: ignore
 
-    - name: Gather facts manually
-      ansible.windows.setup:
+    - name: Verify Connectivity to Windows Host
+      ansible.windows.win_ping:
 
     - name: Install Chocolatey packages
       chocolatey.chocolatey.win_chocolatey:
@@ -45,5 +49,5 @@
 
     - name: Write managed banner to Desktop
       ansible.windows.win_copy:
-        content: "Managed by Ansible AWX"
+        content: "Managed by Ansible AWX - Lab 2026"
         dest: "C:\\Users\\Public\\Desktop\\managed_by_awx.txt"

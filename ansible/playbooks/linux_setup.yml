@@ -3,11 +3,14 @@
   hosts: linux
   gather_facts: false
   become: false
+  vars:
+    vault_url: "http://vault.awx-mastery.svc.cluster.local:8200"
+
   tasks:
     - name: Fetch credentials using AppRole
       community.hashi_vault.vault_kv2_get:
         url: "{{ vault_url }}"
-        path: "lab/linux/{{ inventory_hostname }}"
+        path: "secret/lab/linux/{{ inventory_hostname }}"
         engine_mount_point: secret
         auth_method: approle
         role_id: "{{ vault_role_id }}"
@@ -31,7 +34,6 @@
   vars:
     packages_common: [vim, curl, wget, net-tools]
     new_user: "labuser"
-    # Note: Use a hashed password for the user module
     new_user_password_hashed: "$6$rounds=656000$saltsalt$9.v0/v1L..." 
 
   tasks:
@@ -42,18 +44,11 @@
           - "OS           : {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
           - "IP Address   : {{ ansible_facts['all_ipv4_addresses'] | first }}"
 
-    - name: Install common packages (Debian/Ubuntu)
-      ansible.builtin.apt:
+    - name: Install common packages
+      ansible.builtin.package:
         name: "{{ packages_common }}"
         state: present
-        update_cache: true
-      when: ansible_facts['os_family'] == "Debian"
-
-    - name: Install common packages (RHEL/Fedora)
-      ansible.builtin.dnf:
-        name: "{{ packages_common }}"
-        state: present
-      when: ansible_facts['os_family'] == "RedHat"
+      # Using 'package' module makes this OS-agnostic (handles apt/dnf automatically)
 
     - name: Ensure lab user exists
       ansible.builtin.user:
