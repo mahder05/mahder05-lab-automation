@@ -3,18 +3,19 @@
   hosts: linux
   gather_facts: false
   become: false
-  vars:
-    vault_url: "http://vault.awx-mastery.svc.cluster.local:8200"
+  # Removed the vars block to prevent conflicts with AWX environment variables
 
   tasks:
     - name: Fetch credentials using AppRole
       community.hashi_vault.vault_kv2_get:
-        url: "{{ vault_url }}"
-        path: "secret/lab/linux/{{ inventory_hostname }}"
+        # Use lookups to pull values from the OS environment variables injected by AWX
+        url: "{{ lookup('ansible.builtin.env', 'VAULT_ADDR') }}"
+        role_id: "{{ lookup('ansible.builtin.env', 'VAULT_ROLE_ID') }}"
+        secret_id: "{{ lookup('ansible.builtin.env', 'VAULT_SECRET_ID') }}"
+        # Added /data/ to the path for KV2 engine compatibility
+        path: "secret/data/lab/linux/{{ inventory_hostname }}"
         engine_mount_point: secret
         auth_method: approle
-        role_id: "{{ vault_role_id }}"
-        secret_id: "{{ vault_secret_id }}"
       register: vault_result
       delegate_to: localhost
       retries: 3
@@ -48,7 +49,6 @@
       ansible.builtin.package:
         name: "{{ packages_common }}"
         state: present
-      # Using 'package' module makes this OS-agnostic (handles apt/dnf automatically)
 
     - name: Ensure lab user exists
       ansible.builtin.user:

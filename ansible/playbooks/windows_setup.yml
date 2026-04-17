@@ -2,19 +2,20 @@
 - name: Windows Host Setup and Management
   hosts: windows
   gather_facts: false
-  vars:
-    # Format: http://<service-name>.<namespace>.svc.cluster.local:<port>
-    vault_url: "http://vault.awx-mastery.svc.cluster.local:8200"
-  
+  # REMOVED: vault_url, vault_role_id, etc. from here 
+  # because they are now injected via the Environment by AWX.
+
   tasks:
     - name: Fetch Admin credentials via AppRole
       community.hashi_vault.vault_kv2_get:
-        url: "{{ vault_url }}"
-        path: "secret/lab/windows/{{ inventory_hostname }}"
+        # Use 'lookup' to grab the variables from the Environment (env)
+        url: "{{ lookup('ansible.builtin.env', 'VAULT_ADDR') }}"
+        role_id: "{{ lookup('ansible.builtin.env', 'VAULT_ROLE_ID') }}"
+        secret_id: "{{ lookup('ansible.builtin.env', 'VAULT_SECRET_ID') }}"
+        # Added /data/ to the path as it is usually required for KV2 engines
+        path: "secret/data/lab/windows/{{ inventory_hostname }}"
         engine_mount_point: secret
         auth_method: approle
-        role_id: "{{ vault_role_id }}"
-        secret_id: "{{ vault_secret_id }}"
       register: win_vault
       delegate_to: localhost
 
