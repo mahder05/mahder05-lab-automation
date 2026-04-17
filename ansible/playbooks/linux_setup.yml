@@ -3,7 +3,6 @@
   hosts: linux
   gather_facts: false
   become: false
-  # Removed the vars block to prevent conflicts with AWX environment variables
 
   tasks:
     - name: Fetch credentials using AppRole
@@ -11,9 +10,7 @@
         url: "{{ lookup('ansible.builtin.env', 'VAULT_ADDR') }}"
         role_id: "{{ lookup('ansible.builtin.env', 'VAULT_ROLE_ID') }}"
         secret_id: "{{ lookup('ansible.builtin.env', 'VAULT_SECRET_ID') }}"
-        # 1. Provide the path relative to the engine (WITHOUT 'secret/' or 'data/')
         path: "lab/linux/{{ inventory_hostname }}"
-        # 2. Explicitly define the mount point
         engine_mount_point: "secret"
         auth_method: "approle"
       register: vault_result
@@ -24,6 +21,7 @@
 
     - name: Set connection facts
       set_fact:
+        # Notice the .data.data structure required for KV2
         ansible_user: "{{ vault_result.data.data.ansible_user }}"
         ansible_password: "{{ vault_result.data.data.ansible_password }}"
         ansible_become_password: "{{ vault_result.data.data.ansible_password }}"

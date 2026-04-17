@@ -7,11 +7,9 @@
   tasks:
     - name: Fetch Admin credentials via AppRole
       community.hashi_vault.vault_kv2_get:
-        # Pull from environment variables injected by the AWX Credential
         url: "{{ lookup('ansible.builtin.env', 'VAULT_ADDR') }}"
         role_id: "{{ lookup('ansible.builtin.env', 'VAULT_ROLE_ID') }}"
         secret_id: "{{ lookup('ansible.builtin.env', 'VAULT_SECRET_ID') }}"
-        # CLEAN PATH: Relative to the mount point, no leading 'secret/' or 'data/'
         path: "lab/windows/{{ inventory_hostname }}"
         engine_mount_point: "secret"
         auth_method: "approle"
@@ -20,6 +18,7 @@
 
     - name: Configure WinRM connection facts
       set_fact:
+        # Ensuring Windows also uses the correct KV2 nested data path
         ansible_user: "{{ win_vault.data.data.ansible_user }}"
         ansible_password: "{{ win_vault.data.data.ansible_password }}"
         ansible_connection: winrm
