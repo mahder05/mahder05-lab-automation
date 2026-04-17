@@ -1,0 +1,15 @@
+---
+- name: Verify Vault Connection and Secret Fetch
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Fetch a secret from Vault
+      community.hashi_vault.vault_kv2_get:
+        path: "secret/data/test" # Adjust this to your actual secret path
+        # No URL or Token needed here - the Injector handles it!
+      register: vault_secret
+
+    - name: Debug Secret (Masked)
+      debug:
+        msg: "The secret has been fetched successfully!"
+      when: vault_secret.data.data is defined
