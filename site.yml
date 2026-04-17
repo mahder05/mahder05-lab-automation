@@ -2,25 +2,29 @@
 - name: Infrastructure Reconciliation - Linux
   hosts: linux
   gather_facts: false
+
   tasks:
-    - name: Fetch Linux Credentials from Vault
+    - name: Fetch credentials using AppRole
       community.hashi_vault.vault_kv2_get:
-        url: "{{ vault_url }}"
+        url: "{{ lookup('ansible.builtin.env', 'VAULT_ADDR') }}"
+        role_id: "{{ lookup('ansible.builtin.env', 'VAULT_ROLE_ID') }}"
+        secret_id: "{{ lookup('ansible.builtin.env', 'VAULT_SECRET_ID') }}"
         path: "lab/linux/{{ inventory_hostname }}"
-        engine_mount_point: secret
-        auth_method: approle
-        role_id: "{{ vault_role_id }}"
-        secret_id: "{{ vault_secret_id }}"
-        timeout: 60
+        engine_mount_point: "secret"
+        auth_method: "approle"
       register: vault_result
       delegate_to: localhost
-      no_log: true
+      retries: 3
+      delay: 5
+      until: vault_result is not failed
 
-    - name: Set Connection Facts
+    - name: Set connection facts
       set_fact:
-        ansible_user: "{{ vault_result.secret['username'] }}"
-        ansible_password: "{{ vault_result.secret['password'] }}"
-        ansible_become_password: "{{ vault_result.secret['password'] }}"
+        ansible_user: "{{ vault_result.data.data.username }}"
+        ansible_password: "{{ vault_result.data.data.password }}"
+        # Map the same password to become_password for sudo access
+        ansible_become_password: "{{ vault_result.data.data.password }}"
+
       no_log: true
 
     - name: Establish Connection and Gather Facts
@@ -28,7 +32,7 @@
 
     - name: Install Node Exporter (RedHat/Fedora)
       when: ansible_facts['os_family'] == "RedHat"
-      become: yes
+      become: true
       block:
         - name: Download Node Exporter Binary
           ansible.builtin.get_url:
@@ -59,7 +63,7 @@
         name: prometheus-node-exporter
         state: present
       when: ansible_facts['os_family'] == "Debian"
-      become: yes
+      become: true
 
     - name: Ensure Node Exporter is Running
       ansible.builtin.service:
@@ -67,36 +71,33 @@
         state: started
         enabled: yes
         daemon_reload: yes
-      become: yes
+      become: true
 
 - name: Infrastructure Reconciliation - Windows
   hosts: windows
   gather_facts: false
-  tasks:
-    - name: Fetch Windows Credentials from Vault
-      community.hashi_vault.vault_kv2_get:
-        url: "{{ vault_url }}"
-        path: "lab/windows/{{ inventory_hostname }}"
-        engine_mount_point: secret
-        auth_method: approle
-        role_id: "{{ vault_role_id }}"
-        secret_id: "{{ vault_secret_id }}"
-        timeout: 60
-      register: vault_result
-      delegate_to: localhost
-      no_log: true
 
-    - name: Set Windows Connection Facts
+  tasks:
+    - name: Fetch Admin credentials via AppRole
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ lookup('ansible.builtin.env', 'VAULT_ADDR') }}"
+        role_id: "{{ lookup('ansible.builtin.env', 'VAULT_ROLE_ID') }}"
+        secret_id: "{{ lookup('ansible.builtin.env', 'VAULT_SECRET_ID') }}"
+        path: "lab/windows/{{ inventory_hostname }}"
+        engine_mount_point: "secret"
+        auth_method: "approle"
+      register: win_vault
+      delegate_to: localhost
+
+    - name: Configure WinRM connection facts
       set_fact:
-        ansible_user: "{{ vault_result.secret['username'] }}"
-        ansible_password: "{{ vault_result.secret['password'] }}"
+        ansible_user: "{{ win_vault.data.data.username }}"
+        ansible_password: "{{ win_vault.data.data.password }}"
         ansible_connection: winrm
         ansible_winrm_transport: basic
         ansible_winrm_port: 5985
         ansible_winrm_scheme: http
         ansible_winrm_server_cert_validation: ignore
-        ansible_winrm_operation_timeout_sec: 60
-        ansible_winrm_read_timeout_sec: 70
       no_log: true
 
     - name: Verify Windows Connectivity
