@@ -1,20 +1,9 @@
 ---
 - name: Windows Host Setup and Management
   hosts: windows
-  gather_facts: false  # False initially because we need credentials first
-  
-  vars:
-    chocolatey_packages:
-      - googlechrome
-      - notepadplusplus
-      - 7zip
-      - git
-    new_user: "labuser"
-    new_user_group: "Administrators"
-
+  gather_facts: false
   tasks:
-    # ── AUTHENTICATION: Fetch Admin Credentials from Vault ──────────
-    - name: Fetch Admin credentials from Vault
+    - name: Fetch Admin credentials via AppRole
       community.hashi_vault.vault_kv2_get:
         url: "{{ vault_url }}"
         path: "lab/windows/{{ inventory_hostname }}"
@@ -24,98 +13,37 @@
         secret_id: "{{ vault_secret_id }}"
       register: win_vault
       delegate_to: localhost
-      retries: 3
-      delay: 5
-      until: win_vault is not failed
 
-    - name: Set WinRM and User facts
+    - name: Configure WinRM connection facts
       set_fact:
         ansible_user: "{{ win_vault.data.data.ansible_user }}"
         ansible_password: "{{ win_vault.data.data.ansible_password }}"
-        # Extracting the new user password here to avoid double-fetching
-        new_user_password: "{{ win_vault.secret.labuser_password | default('M4_Mastery_2026!') }}"
+        ansible_connection: winrm
         ansible_winrm_transport: basic
         ansible_winrm_port: 5985
         ansible_winrm_scheme: http
         ansible_winrm_server_cert_validation: ignore
-        ansible_connection: winrm
 
-    # ── GATHER FACTS: Now that we have credentials ────────────────
     - name: Gather facts manually
-      ansible.builtin.setup:
+      ansible.windows.setup:
 
-    # ── SYSTEM INFO: Debugging ─────────────────────────────────────
-    - name: Display system information
-      ansible.builtin.debug:
-        msg:
-          - "Hostname     : {{ ansible_facts['hostname'] }}"
-          - "OS           : {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
-          - "Architecture : {{ ansible_facts['architecture'] }}"
-          - "Total RAM    : {{ ansible_facts['memtotal_mb'] }} MB"
-
-    - name: Get disk info
-      ansible.windows.win_shell: Get-PSDrive -PSProvider FileSystem | Select-Object Name, Used, Free
-      register: disk_info
-      changed_when: false
-
-    - name: Show disk info
-      ansible.builtin.debug:
-        var: disk_info.stdout_lines
-
-    # ── SOFTWARE: Chocolatey Management ────────────────────────────
-    - name: Ensure Chocolatey is installed
+    - name: Install Chocolatey packages
       chocolatey.chocolatey.win_chocolatey:
-        name: chocolatey
+        name: [googlechrome, notepadplusplus, 7zip, git]
         state: present
-      failed_when: false
 
-    - name: Install packages via Chocolatey
-      chocolatey.chocolatey.win_chocolatey:
-        name: "{{ chocolatey_packages }}"
-        state: present
-      failed_when: false
-
-    # ── USER MANAGEMENT: Fixed Indentation and Policies ────────────
-    - name: Lower password complexity requirements
-      ansible.windows.win_powershell:
-        script: |
-          secedit /export /cfg C:\sec.cfg
-          (Get-Content C:\sec.cfg) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content C:\sec.cfg
-          secedit /configure /db $env:windir\security\local.sdb /cfg C:\sec.cfg /areas SECURITYPOLICY
-    
     - name: Ensure lab user exists
       ansible.windows.win_user:
-        name: "{{ new_user }}"
-        password: "{{ new_user_password }}"
+        name: "labuser"
+        password: "{{ win_vault.data.data.labuser_password | default('M4_Mastery_2026!') }}"
         state: present
-        password_never_expires: true
-        account_disabled: false
+        groups: ["Administrators"]
 
-    - name: Add lab user to group
-      ansible.windows.win_group_membership:
-        name: "{{ new_user_group }}"
-        members:
-          - "{{ new_user }}"
-        state: present
-
-    # ── SYSTEM SETTINGS: Hardening & Config ────────────────────────
     - name: Set timezone to UTC
       ansible.windows.win_timezone:
         timezone: "UTC"
 
-    - name: Disable Windows Firewall (lab only)
-      ansible.windows.win_firewall:
-        state: disabled
-        profiles:
-          - Domain
-          - Private
-          - Public
-
-    - name: Write custom welcome message to desktop
+    - name: Write managed banner to Desktop
       ansible.windows.win_copy:
-        content: |
-          ############################################
-          #   Managed by Ansible AWX - Hybrid Lab   #
-          #   Unauthorized access is prohibited     #
-          ############################################
+        content: "Managed by Ansible AWX"
         dest: "C:\\Users\\Public\\Desktop\\managed_by_awx.txt"

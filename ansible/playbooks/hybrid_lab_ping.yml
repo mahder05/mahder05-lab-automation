@@ -1,28 +1,34 @@
 ---
-- name: Hybrid Lab - Linux
-  hosts: linux
+- name: Hybrid Lab Connectivity Check
+  hosts: linux, windows
   gather_facts: false
-  vars_files:
-    - ../vars/vault_lookup.yml
-  vars:
-    secret_path: "lab/linux/{{ inventory_hostname }}"
-    ansible_user: "{{ vault_kv2.data.data.username }}"
-    ansible_password: "{{ vault_kv2.data.data.password }}"
-
   tasks:
-    - name: Ping
-      ping:
+    - name: Vault Lookup
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_url }}"
+        path: "lab/{{ 'linux' if 'linux' in group_names else 'windows' }}/{{ inventory_hostname }}"
+        engine_mount_point: secret
+        auth_method: approle
+        role_id: "{{ vault_role_id }}"
+        secret_id: "{{ vault_secret_id }}"
+      register: creds
+      delegate_to: localhost
 
-- name: Hybrid Lab - Windows
-  hosts: windows
-  gather_facts: false
-  vars_files:
-    - ../vars/vault_lookup.yml
-  vars:
-    secret_path: "lab/windows/{{ inventory_hostname }}"
-    ansible_user: "{{ vault_kv2.data.data.username }}"
-    ansible_password: "{{ vault_kv2.data.data.password }}"
+    - name: Set Connection Facts
+      set_fact:
+        ansible_user: "{{ creds.data.data.ansible_user }}"
+        ansible_password: "{{ creds.data.data.ansible_password }}"
+        # Protocol switch for Windows
+        ansible_connection: "{{ 'winrm' if 'windows' in group_names else 'ssh' }}"
+        ansible_winrm_transport: basic
+        ansible_winrm_port: 5985
+        ansible_winrm_scheme: http
+        ansible_winrm_server_cert_validation: ignore
+      
+    - name: Ping Linux
+      ansible.builtin.ping:
+      when: "'linux' in group_names"
 
-  tasks:
-    - name: Win ping
+    - name: Ping Windows
       ansible.windows.win_ping:
+      when: "'windows' in group_names"
