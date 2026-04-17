@@ -5,7 +5,6 @@ metadata:
   namespace: awx-mastery
 spec:
   service_type: nodeport
-  # Resource requests tailored for your M4 (lightweight start)
   postgres_resource_requirements:
     requests:
       cpu: "100m"

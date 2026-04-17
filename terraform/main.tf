@@ -102,3 +102,28 @@ variable "vault_approle_secret_id" {
   type      = string
   sensitive = true
 }
+
+resource "helm_release" "monitoring" {
+  name             = "monitoring"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  namespace        = "monitoring"
+  create_namespace = true
+
+  # Set a static password so you don't have to hunt for it in secrets
+  set {
+    name  = "grafana.adminPassword"
+    value = "admin123" 
+  }
+
+  # Optimize for local lab (lower resource usage)
+  set {
+    name  = "prometheus.prometheusSpec.resources.requests.memory"
+    value = "512Mi"
+  }
+
+  set {
+    name  = "grafana.sidecar.dashboards.enabled"
+    value = "true"
+  }
+}
