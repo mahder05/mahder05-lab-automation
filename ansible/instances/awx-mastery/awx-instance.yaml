@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: awx-metrics-monitor
+  namespace: awx-mastery
+  labels:
+    release: monitoring 
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: awx
+  namespaceSelector:
+    matchNames:
+      - awx-mastery
+  endpoints:
+  - port: http
+    path: /api/v2/metrics/
+    interval: 30s
+    authorization:
+      credentials:
+        name: awx-metrics-token
+        key: token
