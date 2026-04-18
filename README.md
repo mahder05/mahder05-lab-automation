@@ -28,10 +28,10 @@ This lab simulates a real-world enterprise environment on a local machine:
 
 | Service  | Access URL                |            Purpose                 |                    
 |----------|---------------------------|------------------------------------|
-| ArgoCD   | http://argocd.local:8043 |      GitOps & App Deployment       |
+| ArgoCD   | http://argocd.local:8043  |      GitOps & App Deployment       |
 | AWX      | http://awx.local:8043     |     Ansible Automation Engine      |
-| Vault    | http://localhost:8043     |     Secrets & Identity Management  |
-| Grafana  | http://localhost:8043     |      Observability & Metrics       |
+| Vault    | http://granfana.local:8043|     Secrets & Identity Management  |
+| Grafana  | http://vault.local:8043   |      Observability & Metrics       |
 
 ## 🚀 Installation & Deployment Steps.
 
