@@ -18,6 +18,7 @@ This lab simulates a real-world enterprise environment on a local machine:
 | Container Runtime           | Colima (macOS/Linux)     | Linux VM for macOS/Docker compatibility      |
 | Orchestration               | k3s (via k3d)            | High-performance local Kubernetes cluster    |   
 | Infrastructure as Code      | Terraform                | Automated provisioning of K8s resources      |
+| Ingress Controller          | Traefik                  | Native K3s load balancer                     |
 | Continuous Delivery/GitOps  | ArgoCD                   | Declarative Continuous Delivery              |
 | Automation/Configuration    | AWX (Ansible)            | Ansible-based configuration management       |
 | Secrets Management/Security | HashiCorp Vault          | Centralized secrets management               |     
@@ -25,12 +26,12 @@ This lab simulates a real-world enterprise environment on a local machine:
 
 ## 🛠️ **Tech Stack & Ports**
 
-| Service  | Access URL               | Tunnel Port   | Purpose                          |
-|----------|--------------------------|--------------|----------------------------------|
-| ArgoCD   | https://localhost:8081   | 443 → 8081   | GitOps & App Deployment          |
-| AWX      | http://localhost:8083    | 80 → 8043    | Ansible Automation Engine        |
-| Vault    | http://localhost:8200    | 8200 → 8200  | Secrets & Identity Management    |
-| Grafana  | http://localhost:3000    | 80 → 3000    | Observability & Metrics          |
+| Service  | Access URL                |            Purpose                 |                    
+|----------|---------------------------|------------------------------------|
+| ArgoCD   | https://argocod.local:8043|      GitOps & App Deployment       |
+| AWX      | http://awx.local:8043     |     Ansible Automation Engine      |
+| Vault    | http://localhost:8043     |     Secrets & Identity Management  |
+| Grafana  | http://localhost:8043     |      Observability & Metrics       |
 
 ## 🚀 Installation & Deployment Steps.
 
@@ -47,10 +48,9 @@ This lab simulates a real-world enterprise environment on a local machine:
 
     ├── terraform/             # Infrastructure as Code
     ├── argocd/                # GitOps manifests
-    ├── ansible/               # AWX playbooks
+    ├── ansible/               # AWX playbooks, EE, Vars and Inventory, Collections
     ├── scripts/               # Start/Stop/Status automation
-    ├── inventory/             # Dynamic inventory
-    └── execution-environment/ # Ansible EE (Vault integration)
+    
 
 **Step 1: Prepare the Engine (Colima)**
       
