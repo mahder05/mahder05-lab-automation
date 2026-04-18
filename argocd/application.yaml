@@ -6,13 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/mahder05/mahder05-devops-iac-setup.git' # We will update this!
-    targetRevision: HEAD
-    path: IaC/Ansible
+    repoURL: 'https://github.com/mahder05/mahder05-devops-iac-setup.git'
+    targetRevision: main
+    path: argocd
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: awx-mastery
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
