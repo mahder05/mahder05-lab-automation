@@ -2,7 +2,6 @@
 - name: Windows Host Setup and Management
   hosts: windows
   gather_facts: false
-  # No vars block needed - using environment variables from AWX
 
   tasks:
     - name: Dynamically fetch credentials from Vault
