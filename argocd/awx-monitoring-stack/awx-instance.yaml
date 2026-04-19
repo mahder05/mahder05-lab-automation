@@ -6,3 +6,4 @@ metadata:
 spec:
   service_type: ClusterIP
   postgres_storage_class: local-path
+  web_service_nodeport_port: 80
