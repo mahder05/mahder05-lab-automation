@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: 'https://github.com/mahder05/mahder05-devops-iac-setup.git'
     targetRevision: main
-    path: argocd
+    path: kubernetes/manifests
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: awx-mastery

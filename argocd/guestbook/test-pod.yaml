@@ -6,5 +6,5 @@ metadata:
     app: hello-world
 spec:
   containers:
-  - name: nginx
-    image: nginx:alpine
+    - name: nginx
+  image: nginx:alpine
