@@ -9,9 +9,9 @@ A local, production-grade DevOps environment powered by Kubernetes (k3s) and Col
 ![Vault](https://img.shields.io/badge/Security-Vault-black?logo=vault)
 ![Grafana](https://img.shields.io/badge/Observability-Grafana-F46800?logo=grafana)
 
-## 🏗️ **Architecture Overview**
+## 🏗️ Architecture Overview
 
-This lab simulates a real-world enterprise environment on a local machine:
+This lab simulates a real-world enterprise environment on a local machine, utilizing a modular GitOps architecture to prevent resource conflicts.
 
 | Component                   | Tool / Technology        | Purpose                                      |
 |-----------------------------|--------------------------|----------------------------------------------|
@@ -19,38 +19,44 @@ This lab simulates a real-world enterprise environment on a local machine:
 | Orchestration               | k3s (via k3d)            | High-performance local Kubernetes cluster    |   
 | Infrastructure as Code      | Terraform                | Automated provisioning of K8s resources      |
 | Ingress Controller          | Traefik                  | Native K3s load balancer                     |
-| Continuous Delivery/GitOps  | ArgoCD                   | Declarative Continuous Delivery              |
+| Continuous Delivery/GitOps  | ArgoCD                   | Declarative CD (Modular App-of-Apps)         |
 | Automation/Configuration    | AWX (Ansible)            | Ansible-based configuration management       |
 | Secrets Management/Security | HashiCorp Vault          | Centralized secrets management               |     
 | Observability               | Grafana                  | Visualization of cluster metrics             |
 
-## 🛠️ **Tech Stack & Ports**
+## 🛠️ Tech Stack & Ports
 
-| Service  | Access URL                |            Purpose                 |                    
+| Service  | Access URL                | Purpose                            |                    
 |----------|---------------------------|------------------------------------|
-| ArgoCD   | http://argocd.local:8043  |      GitOps & App Deployment       |
-| AWX      | http://awx.local:8043     |     Ansible Automation Engine      |
-| Vault    | http://vault.local:8043   |     Secrets & Identity Management  |
-| Grafana  | http://grafana.local:8043 |      Observability & Metrics       |
+| ArgoCD   | http://argocd.local:8043  | GitOps & App Deployment            |
+| AWX      | http://awx.local:8043     | Ansible Automation Engine          |
+| Vault    | http://vault.local:8043   | Secrets & Identity Management      |
+| Grafana  | http://grafana.local:8043 | Observability & Metrics            |
+
+## 📂 Project Structure
+
+The GitOps structure is deliberately separated to isolate workloads and prevent ArgoCD `SharedResourceWarning` conflicts:
+
+```text
+├── terraform/                       # Infrastructure as Code (Bootstraps Cluster & ArgoCD)
+├── kubernetes/manifests/            # General lab manifests (Guestbook, Ingresses)
+├── argocd/awx-monitoring-stack/     # Isolated AWX & Monitoring stack manifests
+├── ansible/                         # AWX playbooks, EE, Vars, Inventory, Collections
+└── scripts/                         # Start/Stop/Status automation# 🚀 DevOps Mastery Lab
+```
+
 
 ## 🚀 Installation & Deployment Steps.
 
 **Prerequisites**
 
-    Homebrew
-    Colima
-    k3d
-    kubectl
-    Helm
-    Terraform
-    
-**Project Structure**
+    - Homebrew
+    - Colima
+    - k3d
+    - kubectl
+    - Helm
+    - Terraform
 
-    ├── terraform/             # Infrastructure as Code
-    ├── argocd/                # GitOps manifests
-    ├── ansible/               # AWX playbooks, EE, Vars and Inventory, Collections
-    ├── scripts/               # Start/Stop/Status automation
-    
 
 **Step 1: Prepare the Engine (Colima)**
       
@@ -80,14 +86,25 @@ This lab simulates a real-world enterprise environment on a local machine:
 
    variables.tf & terraform.tfvars - used to manage cluster naming, toggling services on/off, and defining the list of namespaces to be created.
 
+   Initialize and deploy the base namespaces (argocd, awx-mastery) and Helm charts.
 
-   Initialize and deploy the base namespaces and Helm charts (ArgoCD, Vault Operator, AWX Operator, Monitoring).
+   _Note: This step also bootstraps two independent ArgoCD applications (devops-lab-stack and awx-monitoring-stack) pointing to their respective, isolated Git directories to        prevent resource conflicts._
 
     cd terraform/
     terraform init
     terraform apply -auto-approve
 
-**Step 4: Deploy AWX Instance**
+**Step 4: Validate the GitOps Flow (Optional but Recommended)**
+
+  To ensure ArgoCD is successfully reconciling your cluster state with your Git repository, verify the "Guestbook" test application:
+
+  Ensure your local /etc/hosts file routes guestbook.local to 127.0.0.1.
+
+  Open your browser to http://guestbook.local:8081 (or your mapped load balancer port).
+
+  You should see the standard "Welcome to nginx!" page, confirming your GitOps pipeline is fully operational.
+
+**Step 5: Deploy AWX Instance**
    
    The Terraform script installs the AWX Operator.
 
@@ -126,11 +143,10 @@ This lab simulates a real-world enterprise environment on a local machine:
     # Login with Root Token
     kubectl exec -it vault-0 -n awx-mastery -- vault login <ROOT_TOKEN>
 
-**Step 7: Enable KV2 engine**
-
+    # Enable KV2 engine**
     kubectl exec -it vault-0 -n awx-mastery -- vault secrets enable -path=secret kv-v2
     
-**Step 8: Accessing the Web UIs**
+**Step 7: Accessing the Web UIs**
 
    Run the start script to establish all port-forwarding tunnels:
 
@@ -171,34 +187,22 @@ This lab simulates a real-world enterprise environment on a local machine:
     Access: http://localhost:3000 (via port-forward)
     Default Login: admin / admin
    
-**Step 9: Initialization**
+**Step 8: Environment Management**
    
-   To spin up the environment, ensure Colima is running and execute the master start script:
+   Use the provided scripts in the /scripts directory to manage your lab lifecycle:
 
-       ./devops_lab_start.sh
-
-**Step 10: Vault Unsealing**
-   
-   Vault is configured for manual unseal to simulate production security. The devops_lab_start.sh script handles this automatically using the stored shards, flipping the Vault     pod to 1/1 Ready.
-
-**Step 11: Monitoring & Status**
-
-   You can check the health of all services at any time using:
-    
-       ./devops_lab_status.sh
-
-   This script validates:
-
-       🐳 Colima engine health
-       🏗️ K8s Cluster availability
-       🔌 Active Port-Forwarding tunnels
-       🌐 API responsiveness for Vault, ArgoCD, and AWX
-
-**Step 12: Cleanup**
-
-To stop the lab and save system resources:
+   Check Status: Validate K8s availability, port-forwarding tunnels, and API responsiveness.
+         
+    ./devops_lab_status.sh
+         
+   Stop Lab: Safely spin down the environment to save system resources.
 
     ./devops_lab_stop.sh
+
+   Restart Lab: Spin the environment back up. (Note: Vault is configured for manual unseal; devops_lab_start.sh handles this automatically if your shards are configured).
+
+    ./devops_lab_start.sh
+         
 
 
 _<ins>Security Note</ins>_
