@@ -69,7 +69,7 @@ The GitOps structure is deliberately separated to isolate workloads and prevent 
    Create the cluster and use Terraform to deploy the core services:
 
     # Create the cluster
-    k3d cluster create devops-lab --port "8081:443@loadbalancer"
+    k3d cluster create devops-lab --agents 2 -p "8043:80@loadbalancer"
 
 **Step 3: Provision Infrastructure (Terraform)**
    
@@ -159,21 +159,21 @@ The GitOps structure is deliberately separated to isolate workloads and prevent 
 | ArgoCD  | User: `admin` <br> Pass: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"` |
 | AWX     | User: `admin` <br> Pass: `kubectl get secret awx-lab-admin-password -n awx-mastery -o jsonpath="{.data.password}"` |
 | Vault   | Use the Root Token generated during initialization |
-| Grafana | User: `admin` <br> Pass: `prom-operator` (default) |
+| Grafana | User: `admin` <br> Pass: `<Your-Password>` (default) |
 
 
    **Continuous Delivery (ArgoCD)**
    
    ArgoCD manages the state of the applications inside the cluster.
 
-    Access: https://localhost:8081
+    Access: https://argocd-local:8043
     Default Login: admin
       
    **Automation (AWX)**
    
    AWX is deployed via the AWX Operator and handles Ansible playbooks.
 
-    Access: http://localhost:8043
+    Access: http://awx-local:8043
     Default Login: admin
 
    **Integration**
@@ -184,7 +184,7 @@ The GitOps structure is deliberately separated to isolate workloads and prevent 
 
    The monitoring stack collects metrics via Prometheus.
 
-    Access: http://localhost:3000 (via port-forward)
+    Access: http://grafana-local:8043 (via port-forward)
     Default Login: admin / admin
    
 **Step 8: Environment Management**
@@ -202,8 +202,23 @@ The GitOps structure is deliberately separated to isolate workloads and prevent 
    Restart Lab: Spin the environment back up. (Note: Vault is configured for manual unseal; devops_lab_start.sh handles this automatically if your shards are configured).
 
     ./devops_lab_start.sh
-         
 
+
+### 🔍 Optimization: What to check next?
+Now that the integration is working, you can perform a **"Zero-Trust" test** in AWX:
+
+1.  **Create a Secret in Vault:**
+    ```bash
+    kubectl exec -it vault-0 -n awx-mastery -- vault kv put secret/awx/test_creds username="devops_user" password="supersecretpassword"
+    ```
+2.  **Sync in AWX:** Create a "Credential" in AWX of type **HashiCorp Vault Secret Lookup**.
+3.  **Run a Playbook:** Run a simple debug playbook that prints a variable mapped to that Vault secret. If the playbook shows the value (obfuscated as `VALUE_SPECIFIED`), your integration is 100% verified.
+
+
+
+### 💡 Troubleshooting Tip
+If you ever see a `403 Forbidden` in the AWX job logs while it tries to pull from Vault, check the **Vault Policy** assigned to the AppRole/ServiceAccount. It must have `read` and `list` capabilities for the specific path `secret/data/awx/*`.
+         
 
 _<ins>Security Note</ins>_
 
