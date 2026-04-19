@@ -4,7 +4,6 @@
   become: true
   collections:
     - ansible.posix
-    - community.general
 
   vars:
     nginx_port: 80
@@ -31,11 +30,12 @@
 
     # Firewall rules (optional; harmless if firewalld/ufw not present)
     - name: Allow HTTP on firewalld permanently
-      community.general.firewalld:
+      ansible.posix.firewalld:
         service: http
+        state: enabled
         permanent: true
         immediate: true
-        state: enabled
+        offline: true
       when: ansible_facts.services is defined and ('firewalld' in
         ansible_facts.services or ansible_facts.os_family == 'RedHat')
 
