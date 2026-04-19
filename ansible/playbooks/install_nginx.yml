@@ -1,0 +1,43 @@
+---
+- name: Install and start Nginx
+  hosts: all
+  become: true
+
+  vars:
+    nginx_port: 80
+
+  tasks:
+    - name: Install Nginx (Debian/Ubuntu)
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Install Nginx (RHEL/CentOS/Rocky/Alma)
+      yum:
+        name: nginx
+        state: present
+      when: ansible_facts.os_family == "RedHat"
+
+    - name: Enable and start Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+    # Firewall rules (optional; harmless if firewalld/ufw not present)
+    - name: Allow HTTP on firewalld
+      firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        immediate: true
+      when: ansible_facts.services is defined and ('firewalld' in ansible_facts.services or ansible_facts.os_family == 'RedHat')
+
+    - name: Allow HTTP on UFW
+      ufw:
+        rule: allow
+        port: "{{ nginx_port }}"
+        proto: tcp
+      when: ansible_facts.os_family == "Debian"

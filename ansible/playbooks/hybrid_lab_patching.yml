@@ -1,0 +1,51 @@
+---
+- name: Patch the Hybrid Lab
+  hosts: all
+  gather_facts: true
+  tasks:
+    # --- UBUNTU ---
+    - name: Update Ubuntu Packages
+      when: ansible_facts['distribution'] == "Ubuntu"
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+        autoremove: true
+      register: apt_res
+
+    # --- RHEL ---
+    - name: Update RHEL Packages
+      when: ansible_facts['os_family'] == "RedHat"
+      become: true
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: true
+      register: dnf_res
+
+    # --- WINDOWS ---
+    - name: Install Windows Updates
+      when: ansible_facts['os_family'] == "Windows"
+      ansible.windows.win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+        state: installed
+        reboot: no 
+      register: win_res
+
+    # --- MODERN REBOOT TASKS ---
+    - name: Reboot Linux
+      when: 
+        - ansible_facts['os_family'] != "Windows"
+        - (apt_res.changed | default(false)) or (dnf_res.changed | default(false))
+      become: true
+      ansible.builtin.reboot:
+        reboot_timeout: 3600
+
+    - name: Reboot Windows
+      when: 
+        - ansible_facts['os_family'] == "Windows"
+        - win_res.reboot_required | default(false)
+      ansible.windows.win_reboot:
+        reboot_timeout: 3600
