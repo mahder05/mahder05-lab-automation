@@ -1,6 +1,6 @@
 # 1. THE CREDENTIAL TYPE (The Template)
 resource "awx_credential_type" "hashivault_approle_type" {
-  name        = "HashiVault_Custom_AppRole_Type"
+  name        = "HashiCorp_Vault_Custom_AppRole_Type"
   description = "Custom type for Vault AppRole auth"
   kind        = "cloud"
 
@@ -36,9 +36,9 @@ resource "awx_credential_type" "hashivault_approle_type" {
 
 # 2. THE CREDENTIAL (The Actual Instance)
 resource "awx_credential" "hashivault_approle_instance" {
-  name            = "HashiVault_Custom_AppRole"
+  name            = "HashiCorp_Vault_Custom_AppRole"
   organization    = 1
-  credential_type = awx_credential_type.hashivault_approle_type.id 
+  credential_type = awx_credential_type.hashivault_approle_type.id
 
   inputs = jsonencode({
     address   = "http://vault.awx-mastery.svc.cluster.local:8200"
@@ -64,7 +64,7 @@ resource "awx_credential" "windows_shell" {
 resource "awx_credential" "linux_shell" {
   name            = "Linux_Shell_Credential"
   organization    = 1
-  credential_type = 1 
+  credential_type = 1
 
   inputs = jsonencode({
     username = "placeholder-linux"
@@ -72,9 +72,17 @@ resource "awx_credential" "linux_shell" {
   })
 }
 # 5. THE EXECUTION ENVIRONMENT
-resource "awx_execution_environment" "vault_ee" {
-  name            = "Vault-Execution-Environment"
-  image           = "mahder05/mahder05-vault-ee:latest"
-  organization    = 1        
-  pull            = "never"  # Since you are using k3d image import
+# resource "awx_execution_environment" "vault_ee" {
+#   name            = "Vault-Execution-Environment"
+#   image           = "mahder05/mahder05-vault-ee:latest"
+#   organization    = 1
+#   pull            = "never"  # Since you are using k3d image import
+# }
+
+# 6. THE STABLE EXECUTION ENVIRONMENT
+resource "awx_execution_environment" "awx_ee" {
+  name         = "AWX-Execution-Environment"
+  image        = "mahder05/mahesh-awx-ee:latest"
+  organization = 1
+  pull         = "never" # Since you are using k3d image import
 }

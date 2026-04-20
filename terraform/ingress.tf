@@ -13,7 +13,7 @@ resource "kubernetes_ingress_v1" "argocd_ingress" {
       host = "argocd.local"
       http {
         path {
-          path = "/"
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {
@@ -44,7 +44,7 @@ resource "kubernetes_ingress_v1" "devops_lab_ingress" {
       host = "awx.local"
       http {
         path {
-          path = "/"
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {
@@ -61,7 +61,7 @@ resource "kubernetes_ingress_v1" "devops_lab_ingress" {
       host = "vault.local"
       http {
         path {
-          path = "/"
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {
@@ -92,7 +92,7 @@ resource "kubernetes_ingress_v1" "monitoring_ingress" {
       host = "grafana.local"
       http {
         path {
-          path = "/"
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {
@@ -109,7 +109,7 @@ resource "kubernetes_ingress_v1" "monitoring_ingress" {
       host = "prometheus.local"
       http {
         path {
-          path = "/"
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {

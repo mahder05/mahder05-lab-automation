@@ -30,7 +30,7 @@ provider "helm" {
 }
 
 provider "awx" {
-  endpoint = "http://awx.local:8043"
+  endpoint = "http://awx.local"
   username = "admin"
   password = var.awx_password
 }
