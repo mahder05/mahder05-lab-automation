@@ -5,4 +5,6 @@ collections:
     version: "7.1.0"
   - name: ansible.windows
   - name: community.windows
-  - name: chocolatey.chocolatey  # <--- Add this for Windows package management
+  - name: chocolatey.chocolatey # <--- Add this for Windows package management
+  - name: ansible.posix
+  - name: ansible.utils
