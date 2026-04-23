@@ -39,16 +39,12 @@
 
     - name: Set connection facts
       ansible.builtin.set_fact:
-        # Standard SSH/Linux (Try removing one .data layer)
-        ansible_user: "{{ vault_result.data.username }}"
-        ansible_password: "{{ vault_result.data.password }}"
-        ansible_become_password: "{{ vault_result.data.password }}"
-
-        # Windows WinRM Specific
-        ansible_winrm_user: "{{ vault_result.data.username }}"
-        ansible_winrm_password: "{{ vault_result.data.password }}"
-      no_log: false # Set to false temporarily ONLY to debug if it fails again
-
+        ansible_user: "{{ vault_result.username }}"
+        ansible_password: "{{ vault_result.password }}"
+        ansible_become_password: "{{ vault_result.password }}"
+        # Include WinRM for Windows as well
+        ansible_winrm_user: "{{ vault_result.username }}"
+        ansible_winrm_password: "{{ vault_result.password }}"
     - name: Establish Connection and Gather Facts
       ansible.builtin.setup:
 
