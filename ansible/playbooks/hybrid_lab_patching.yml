@@ -3,6 +3,9 @@
   hosts: all
   gather_facts: true
   tasks:
+    - name: Dynamically fetch credentials from Vault
+      ansible.builtin.include_vars:
+        file: ../vars/vault_lookup.yml
     # --- UBUNTU ---
     - name: Update Ubuntu Packages
       when: ansible_facts['distribution'] == "Ubuntu"

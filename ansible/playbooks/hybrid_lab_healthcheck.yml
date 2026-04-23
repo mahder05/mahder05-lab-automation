@@ -3,13 +3,17 @@
   hosts: all
   gather_facts: true
   tasks:
+    - name: Dynamically fetch credentials from Vault
+      ansible.builtin.include_vars:
+        file: ../vars/vault_lookup.yml
+
     # --- WEB HEARTBEAT ---
     - name: Check Web Service (Linux)
       when: ansible_facts['os_family'] != "Windows"
       ansible.builtin.uri:
         url: "http://{{ ansible_host }}"
         method: GET
-        status_code: [200, 301, 302]
+        status_code: [ 200, 301, 302 ]
       register: web_linux
 
     - name: Check Web Service (Windows)
