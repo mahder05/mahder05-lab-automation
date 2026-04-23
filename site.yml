@@ -39,11 +39,14 @@
 
     - name: Set connection facts
       ansible.builtin.set_fact:
+        # Standard SSH/Linux
         ansible_user: "{{ vault_result.data.data.username }}"
         ansible_password: "{{ vault_result.data.data.password }}"
-        # Map the same password to become_password for sudo access
         ansible_become_password: "{{ vault_result.data.data.password }}"
 
+        # Windows WinRM Specific
+        ansible_winrm_user: "{{ vault_result.data.data.username }}"
+        ansible_winrm_password: "{{ vault_result.data.data.password }}"
       no_log: true
 
     - name: Establish Connection and Gather Facts
@@ -64,8 +67,8 @@
             src: /tmp/node_exporter.tar.gz
             dest: /usr/local/bin
             remote_src: true
-            extra_opts: [--strip-components=1]
-            exclude: ["*.md", "LICENSE"]
+            extra_opts: [ --strip-components=1 ]
+            exclude: [ "*.md", "LICENSE" ]
 
         - name: Create Node Exporter Systemd Service
           ansible.builtin.copy:
